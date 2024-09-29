@@ -87,7 +87,7 @@ services:
   satisfactory-latest:
     container_name: 'satisfactory-latest'
     hostname: 'satisfactory-latest'
-    build: build-scripts/satisfatory-latest
+    build: build-scripts/satisfactory-latest
     volumes:
       - './data/satisfactory/saved/server:/saves'
 
