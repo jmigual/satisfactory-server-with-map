@@ -37,3 +37,4 @@ What we do is we create an nginx server that provides two urls:
 
 The save `latest.sav` is a symlink created by the `satisfactory-latest` docker image which runs a cronjob on the saves folder and updates the the symlink to point to the last modified save. See `build-scripts/satisfactory-latest` for the details of how the symlink is created. 
 
+The caveat is that this relies on your server saving the game so, with the default autosave time, this can be up to 5 minutes late.
