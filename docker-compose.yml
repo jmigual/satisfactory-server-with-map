@@ -67,7 +67,7 @@ services:
     hostname: 'satisfactory-map'
     build: 
       context: build-scripts/satisfactory-map
-      dockerfile: build-scripts/satisfactory-map/Dockerfile
+      dockerfile: Dockerfile
       args:
         - USER_DOMAIN=${USER_DOMAIN}
     command: [nginx-debug, '-g', 'daemon off;']
