@@ -65,7 +65,10 @@ services:
   satisfactory-map:
     container_name: 'satisfactory-map'
     hostname: 'satisfactory-map'
-    build: build-scripts/nginx
+    build: 
+      dockerfile: build-scripts/nginx
+      args:
+        - USER_DOMAIN=${USER_DOMAIN}
     command: [nginx-debug, '-g', 'daemon off;']
     networks:
       - traefik
