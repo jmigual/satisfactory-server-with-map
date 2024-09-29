@@ -1,0 +1,97 @@
+services:
+  traefik:
+    image: "traefik:latest"
+    container_name: "traefik"
+    restart: "always"
+    networks:
+      - "traefik"
+      - "outside"
+    command:
+      - "--log.level=DEBUG"
+      # - "--log.level=INFO"
+      - "--entrypoints.http.address=:80"
+      - "--entrypoints.https.address=:443"
+      - "--entrypoints.factorio.address=:34197/udp"
+
+      - "--entrypoints.http.http.redirections.entryPoint.to=https"
+      - "--entrypoints.http.http.redirections.entryPoint.scheme=https"
+      - "--entryPoints.https.http.tls=true"
+
+      - "--providers.docker"
+      - "--providers.docker.exposedByDefault=false"
+
+      # We use TLS schallenge instead
+      - "--certificatesresolvers.default.acme.email=${USER_EMAIL}"
+      - "--certificatesresolvers.default.acme.storage=/letsencrypt/acme.json"
+      - "--certificatesresolvers.default.acme.tlschallenge=true"
+      # - "--certificatesresolvers.default.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "34197:34197/udp"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./data/traefik-data:/etc/traefik"
+      - './data/letsencrypt:/letsencrypt'
+    labels:
+      - "traefik.enable=true"
+  satisfactory-server:
+    container_name: 'satisfactory-server'
+    hostname: 'satisfactory-server'
+    image: 'wolveix/satisfactory-server:latest'
+    ports:
+      - '7777:7777/udp'
+      - '7777:7777/tcp'
+    volumes:
+      - './data/satisfactory:/config'
+    environment:
+      - MAXPLAYERS=6
+      - PGID=1000
+      - ROOTLESS=false
+      - STEAMBETA=false
+    restart: unless-stopped
+    healthcheck:
+      test: bash /healthcheck.sh
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+        reservations:
+          memory: 4G
+  satisfactory-map:
+    container_name: 'satisfactory-map'
+    hostname: 'satisfactory-map'
+    build: build-scripts/nginx
+    command: [nginx-debug, '-g', 'daemon off;']
+    networks:
+      - traefik
+    volumes:
+      - './data/satisfactory/saved/server:/var/www/html/saves:ro'
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+      - "traefik.http.services.satisfactory-map.loadbalancer.server.port=80"
+
+      - "traefik.http.routers.satisfactory-map.rule=Host(`satisfactory.${USER_DOMAIN}`)"
+      - "traefik.http.routers.satisfactory-map.entrypoints=https"
+      - "traefik.http.routers.satisfactory-map.tls=true"
+      - "traefik.http.routers.satisfactory-map.tls.certresolver=default"
+  # Container that runs a crontab that creates a symlink to the latest save
+  satisfactory-latest:
+    container_name: 'satisfactory-latest'
+    hostname: 'satisfactory-latest'
+    build: build-scripts/satisfatory-latest
+    volumes:
+      - './data/satisfactory/saved/server:/saves'
+
+networks:
+  # docker network create --internal --driver=bridge traefik
+  traefik:
+    name: "traefik"
+    external: true
+  outside:
+    name: "outside"
